@@ -20,11 +20,12 @@ const voterKey = (voter: string) => `{menu}:voter:${voter}`;
 
 function redisFromEnv(): Redis | null {
   const env = process.env;
-  // Vercel's Upstash integration sets KV_REST_API_*, optionally with a custom
-  // prefix (e.g. MENU_KV_REST_API_URL); Upstash's own docs use UPSTASH_REDIS_REST_*.
+  // Upstash's own docs use UPSTASH_REDIS_REST_*; Vercel's integration sets
+  // KV_REST_API_* by default, or <PREFIX>_REST_API_* when a custom prefix is
+  // typed while connecting the database (e.g. STORAGE_REST_API_URL).
   const urlKey =
     ["UPSTASH_REDIS_REST_URL", "KV_REST_API_URL"].find((k) => env[k]) ??
-    Object.keys(env).find((k) => /(KV_REST_API|UPSTASH_REDIS_REST)_URL$/.test(k) && env[k]);
+    Object.keys(env).find((k) => /_REST_(API_)?URL$/.test(k) && env[k]?.includes("upstash.io"));
   const url = urlKey && env[urlKey];
   const token = urlKey && env[urlKey.replace(/URL$/, "TOKEN")];
   return url && token ? new Redis({ url, token }) : null;

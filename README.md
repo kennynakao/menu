@@ -9,7 +9,7 @@ Live menus for every UC Davis dining commons — **Segundo, Tercero, Cuarto and 
 ## Deploy on Vercel
 
 1. Push this repo to GitHub and import it at [vercel.com/new](https://vercel.com/new). No settings to change.
-2. In the Vercel project, open **Storage → Create Database → Upstash for Redis** (the free plan is plenty) and connect it to the project. This adds the `KV_REST_API_URL` and `KV_REST_API_TOKEN` environment variables.
+2. In the Vercel project, open **Storage → Create Database → Upstash for Redis** (the free plan is plenty) and connect it to the project. This adds the `KV_REST_API_URL` and `KV_REST_API_TOKEN` environment variables (any custom prefix works too).
 3. **Redeploy** so the new variables are picked up.
 
 Without step 2 the site still works, but votes live in server memory and disappear. The footer shows a warning until a database is connected.
