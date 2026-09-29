@@ -143,6 +143,9 @@ function daysInHeading(heading: string): number[] {
 
 type DishCollector = (dish: Dish) => number;
 
+/** Latitude lists "Platform Closed" as if it were a dish while a station is shut between meals. */
+const isPlaceholder = (dish: Dish) => /^(platform|zone|station)?\s*closed$/i.test(dish.name);
+
 function parseDish($: CheerioAPI, panel: Parameters<CheerioAPI>[0], withIngredients: boolean): Dish | null {
   const $panel = $(panel);
   const name = clean($panel.find(".panel-title").first().text()).replace(/\s*\|\|\s*/g, " / ");
@@ -237,7 +240,7 @@ export function parseHallPage(
               .find(".panel")
               .each((_, panel) => {
                 const dish = parseDish($, panel, ingredients);
-                if (dish) dishes.push(collect(dish));
+                if (dish && !isPlaceholder(dish)) dishes.push(collect(dish));
               });
             zones.push({
               color,
