@@ -1,5 +1,5 @@
 import { davisDate, davisMinutes, parseHours } from "./time";
-import type { Day, DietTag, Dish, Hall, Meal, MenuData } from "./types";
+import type { Day, Hall, Meal, MenuData } from "./types";
 
 export type Selection = { hall: string; date: string; meal: string };
 
@@ -87,6 +87,5 @@ export function reconcile(menu: MenuData, next: Selection, now: Date): Selection
   return { ...next, date, meal };
 }
 
-export const matchesDiet = (dish: Dish, filters: DietTag[]) => filters.every((tag) => dish.tags.includes(tag));
 
 export const score = (t: { up: number; down: number } | undefined) => (t ? t.up - t.down : 0);

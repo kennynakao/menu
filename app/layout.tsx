@@ -20,7 +20,8 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     title: APP_NAME,
-    statusBarStyle: "default",
+    // Content runs under the status bar; the app paints it navy to match the header.
+    statusBarStyle: "black-translucent",
   },
   formatDetection: { telephone: false },
   openGraph: {
@@ -34,10 +35,8 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f5f5f4" },
-    { media: "(prefers-color-scheme: dark)", color: "#0c0c0d" },
-  ],
+  // Aggie Blue, so the browser bar blends into the header.
+  themeColor: "#022851",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

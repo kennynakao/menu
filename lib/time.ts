@@ -93,6 +93,9 @@ function formatClock(minutes: number, withMeridiem: boolean): string {
   return withMeridiem ? `${clock} ${h24 < 12 ? "AM" : "PM"}` : clock;
 }
 
+/** 1020 → "5 PM", 630 → "10:30 AM" */
+export const formatTime = (minutes: number) => formatClock(minutes, true);
+
 /** 420, 660 → "7–11 AM"; 660, 1020 → "11 AM–5 PM" */
 export function formatRange(start: number, end: number): string {
   const sameHalf = start < 720 === end < 720;

@@ -42,7 +42,7 @@ export function VoteControl({
 
   return (
     <div
-      className={`flex h-8 shrink-0 items-center rounded-full transition-colors duration-200 ${
+      className={`flex h-8 shrink-0 items-center rounded-md transition-colors duration-200 ${
         mine === 1 ? "bg-up-soft" : mine === -1 ? "bg-down-soft" : "bg-chip"
       }`}
     >
@@ -51,7 +51,7 @@ export function VoteControl({
         aria-label={`Upvote ${name}`}
         aria-pressed={mine === 1}
         onClick={() => cast(mine === 1 ? 0 : 1)}
-        className={`grid size-8 place-items-center rounded-full transition-[color,transform] duration-150 ease-out active:scale-85 ${
+        className={`grid size-8 place-items-center rounded transition-[color,transform] duration-150 ease-out active:scale-85 ${
           mine === 1 ? "text-up" : "text-muted hover:text-up"
         }`}
       >
@@ -74,7 +74,7 @@ export function VoteControl({
         aria-label={`Downvote ${name}`}
         aria-pressed={mine === -1}
         onClick={() => cast(mine === -1 ? 0 : -1)}
-        className={`grid size-8 place-items-center rounded-full transition-[color,transform] duration-150 ease-out active:scale-85 ${
+        className={`grid size-8 place-items-center rounded transition-[color,transform] duration-150 ease-out active:scale-85 ${
           mine === -1 ? "text-down" : "text-muted hover:text-down"
         }`}
       >
@@ -95,7 +95,7 @@ const TAG_STYLE = {
 function Stat({ label, value, unit }: { label: string; value?: number; unit?: string }) {
   if (value === undefined) return null;
   return (
-    <div className="rounded-xl bg-chip px-2.5 py-2">
+    <div className="rounded bg-chip px-2.5 py-2">
       <div className="text-[15px] font-semibold tabular-nums leading-5">
         {value}
         {unit && <span className="ml-px text-[11px] font-medium text-muted">{unit}</span>}
@@ -139,7 +139,7 @@ export function DishRow({
               {tags.map((tag) => (
                 <span
                   key={tag}
-                  className={`rounded-md px-1.5 py-px text-[11px] font-semibold capitalize ${TAG_STYLE[tag]}`}
+                  className={`rounded-sm px-1.5 py-px text-[11px] font-semibold capitalize ${TAG_STYLE[tag]}`}
                 >
                   {tag}
                 </span>
@@ -174,7 +174,7 @@ export function DishRow({
               <span className="mr-0.5 font-semibold text-muted">Contains</span>
               {allergens.length ? (
                 allergens.map((a) => (
-                  <span key={a} className="rounded-md bg-chip px-1.5 py-0.5 font-medium">
+                  <span key={a} className="rounded-sm bg-chip px-1.5 py-0.5 font-medium">
                     {a}
                   </span>
                 ))
@@ -182,7 +182,7 @@ export function DishRow({
                 <span className="font-medium text-muted">No major allergens</span>
               )}
               {sharedFryer && (
-                <span className="rounded-md bg-amber-500/15 px-1.5 py-0.5 font-medium text-amber-800 dark:text-amber-300">
+                <span className="rounded-sm bg-amber-500/15 px-1.5 py-0.5 font-medium text-amber-800 dark:text-amber-300">
                   Shared fryer
                 </span>
               )}

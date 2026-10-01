@@ -4,7 +4,11 @@ Live menus for every UC Davis dining commons — **Segundo, Tercero, Cuarto and 
 
 - **Always live.** The site scrapes [UC Davis Dining](https://housing.ucdavis.edu/dining/menus/) on the server and re-scrapes at most every 15 minutes. Nothing to update by hand; new weeks show up on their own.
 - **Votes follow the dish.** A vote is tied to the dish name, not the date or hall, so when "Orange Chicken" comes back next week (or at another DC) its score is still there.
-- **Opens to what matters.** Today's date and the meal being served right now, at your usual dining commons. Diet filters (vegan, vegetarian, halal), allergens and nutrition for every dish, and a "top rated on campus" list for the current meal.
+- **Opens to what matters.** Today's date and the meal being served right now, at your usual dining commons, with whether each one is open right now.
+- **Top voted.** A leaderboard for each dining commons (most and least loved dishes on this week's menu, with when each is served next), top-rated dishes on campus for the current meal, and "your upvotes this week".
+- **Search.** Find a dish and see every dining commons and meal serving it this week.
+- **Filters.** Vegan, vegetarian, halal and 20g+ protein, plus allergens to avoid (dairy, egg, gluten, soy, sesame, fish, shellfish, tree nuts, peanuts, alcohol, shared fryer). Allergens and nutrition for every dish.
+- **Desktop and mobile layouts.** A sidebar and leaderboard rail on wide screens; a stacked view with a bottom tab bar on phones. Styled in UC Davis Student Housing & Dining colors (Aggie Blue `#022851`, Aggie Gold `#FFBF00`), with a dark mode.
 
 ## Deploy on Vercel
 
@@ -45,6 +49,8 @@ The scraped data is also served as JSON at `/api/menu`.
 | Live caching: page regenerates in the background every 15 min | `app/page.tsx`, `lib/menu.ts` |
 | Vote storage (Upstash Redis, atomic Lua script, one vote per visitor per dish) | `lib/votes.ts`, `app/api/votes/route.ts` |
 | Picking today / the current meal in Davis time | `lib/menu-view.ts`, `lib/time.ts` |
+| Leaderboards, search, open-now status | `lib/insights.ts` |
+| Diet and allergen filters | `lib/filters.ts` |
 | UI | `components/` |
 | App name | `lib/app.ts` |
 
