@@ -49,10 +49,12 @@ export function indexServings(menu: MenuData): Map<string, Serving[]> {
 export const isUpcoming = (s: Serving, today: string, minutes: number) =>
   s.date > today || (s.date === today && minutes < s.end);
 
-/** "Today · Dinner", "Tomorrow · Lunch", "Fri · Breakfast" */
-export function whenLabel(s: Serving, today: string, tomorrow: string): string {
-  const day = s.date === today ? "Today" : s.date === tomorrow ? "Tomorrow" : formatDay(s.date).weekday;
-  return `${day} · ${s.meal}`;
+/** "Lunch today", "Dinner tomorrow", "Fri breakfast"; `inline` lowercases the meal for mid-sentence use. */
+export function whenLabel(s: Serving, today: string, tomorrow: string, inline = false): string {
+  const meal = inline ? s.meal.toLowerCase() : s.meal;
+  if (s.date === today) return `${meal} today`;
+  if (s.date === tomorrow) return `${meal} tomorrow`;
+  return `${formatDay(s.date).weekday} ${s.meal.toLowerCase()}`;
 }
 
 export type RankedDish = { dish: Dish; tally: VoteTally; score: number; next?: Serving; last?: Serving };
@@ -131,13 +133,14 @@ export function searchDishes(
   return hits.sort((a, b) => a.rank - b.rank || a.dish.name.localeCompare(b.dish.name)).slice(0, limit);
 }
 
-export type HallStatus = { open: boolean; label: string };
+/** `label` is the full status; `short` fits a narrow tab on phones. */
+export type HallStatus = { open: boolean; label: string; short: string };
 
 /** Whether a dining commons is serving right now, from its posted zone hours. */
 export function hallStatus(hall: Hall, today: string, minutes: number): HallStatus {
-  if (hall.error) return { open: false, label: "Menu unavailable" };
+  if (hall.error) return { open: false, label: "Menu unavailable", short: "Unavailable" };
   const day = hall.days.find((d) => d.date === today);
-  if (!isOpen(day)) return { open: false, label: "Closed today" };
+  if (!isOpen(day)) return { open: false, label: "Closed today", short: "Closed" };
 
   const ranges = day!.meals
     .filter((meal) => dishCount(meal) > 0)
@@ -149,11 +152,11 @@ export function hallStatus(hall: Hall, today: string, minutes: number): HallStat
     if (last && s <= last[1]) last[1] = Math.max(last[1], e);
     else merged.push([s, e]);
   }
-  if (!merged.length) return { open: true, label: "Open today" };
+  if (!merged.length) return { open: true, label: "Open today", short: "Open" };
 
   const current = merged.find(([s, e]) => minutes >= s && minutes < e);
-  if (current) return { open: true, label: `Open until ${formatTime(current[1])}` };
+  if (current) return { open: true, label: `Open until ${formatTime(current[1])}`, short: "Open" };
   const next = merged.find(([s]) => s > minutes);
-  if (next) return { open: false, label: `Opens at ${formatTime(next[0])}` };
-  return { open: false, label: "Closed for the day" };
+  if (next) return { open: false, label: `Opens at ${formatTime(next[0])}`, short: `Opens ${formatTime(next[0])}` };
+  return { open: false, label: "Closed for the day", short: "Closed" };
 }

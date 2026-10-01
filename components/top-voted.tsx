@@ -1,6 +1,7 @@
 "use client";
 
-import { Segmented } from "@/components/controls";
+import type { ReactNode } from "react";
+import { Tabs } from "@/components/controls";
 import type { HallStatus, RankedDish, Serving } from "@/lib/insights";
 import { whenLabel } from "@/lib/insights";
 import { formatDay } from "@/lib/time";
@@ -10,59 +11,67 @@ export const formatScore = (n: number) => (n > 0 ? `+${n}` : n < 0 ? `−${Math.
 
 export type Clock = { today: string; tomorrow: string };
 
-function ScorePill({ score }: { score: number }) {
-  return (
-    <span
-      className={`shrink-0 rounded-sm px-2 py-0.5 text-[12px] font-semibold tabular-nums ${
-        score >= 0 ? "bg-up-soft text-up" : "bg-down-soft text-down"
-      }`}
-    >
-      {formatScore(score)}
-    </span>
-  );
-}
+type Row = { dish: Dish; score: number; next?: Serving; last?: Serving };
 
 function servingLabel(row: { next?: Serving; last?: Serving }, clock: Clock, withHall = false) {
   const s = row.next ?? row.last;
   if (!s) return "";
-  const where = withHall ? `${s.hallName} · ` : "";
-  return row.next ? `${where}${whenLabel(s, clock.today, clock.tomorrow)}` : `${where}Last served ${formatDay(s.date).weekday}`;
+  const where = withHall ? `${s.hallName}, ` : "";
+  return row.next
+    ? `${where}${whenLabel(s, clock.today, clock.tomorrow)}`
+    : `${where}${where ? "last" : "Last"} served ${formatDay(s.date).weekday}`;
 }
 
-function RankRow({
-  rank,
-  name,
+/** Ranked rows with serif numerals, set like a newspaper league table. */
+function RankList({
+  rows,
   detail,
-  score,
-  onClick,
+  onOpen,
 }: {
-  rank: number;
-  name: string;
-  detail: string;
-  score: number;
-  onClick: () => void;
+  rows: Row[];
+  detail: (row: Row) => string;
+  onOpen: (key: string, serving?: Serving) => void;
 }) {
   return (
-    <li>
-      <button
-        type="button"
-        onClick={onClick}
-        className="flex w-full items-center gap-3 rounded px-3 py-2 text-left transition-colors hover:bg-chip active:bg-chip"
-      >
-        <span
-          className={`grid size-6 shrink-0 place-items-center rounded-sm text-[12px] font-bold tabular-nums ${
-            rank === 1 ? "bg-gold text-brand" : "bg-chip text-muted"
-          }`}
-        >
-          {rank}
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block truncate text-[14px] font-medium">{name}</span>
-          {detail && <span className="block truncate text-[12px] text-muted">{detail}</span>}
-        </span>
-        <ScorePill score={score} />
-      </button>
-    </li>
+    <ol>
+      {rows.map((row, i) => (
+        <li key={row.dish.key} className="border-t border-rule first:border-t-0">
+          <button
+            type="button"
+            onClick={() => onOpen(row.dish.key, row.next ?? row.last)}
+            className="group flex w-full items-baseline gap-f13 py-f8 text-left"
+          >
+            <span
+              className={`w-f13 shrink-0 text-right font-serif text-lead font-semibold tabular-nums ${i === 0 ? "text-gold-deep" : "text-ink-3"}`}
+            >
+              {i + 1}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate font-semibold text-ink decoration-gold decoration-2 underline-offset-4 group-hover:underline">
+                {row.dish.name}
+              </span>
+              {detail(row) && <span className="block truncate text-cap text-ink-3">{detail(row)}</span>}
+            </span>
+            <span
+              className={`shrink-0 font-semibold tabular-nums ${row.score < 0 ? "text-down" : "text-heading"}`}
+            >
+              {formatScore(row.score)}
+            </span>
+          </button>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+/** A plain section for the side rail: heading, one line of context, hairline list. */
+function RailSection({ title, note, children }: { title: string; note?: string; children: ReactNode }) {
+  return (
+    <section>
+      <h2 className="text-lead font-semibold text-heading">{title}</h2>
+      {note && <p className="text-cap text-ink-3">{note}</p>}
+      <div className="mt-f8 border-t-2 border-heading/80 pt-f3">{children}</div>
+    </section>
   );
 }
 
@@ -74,7 +83,6 @@ export function HallBoard({
   best,
   clock,
   onOpen,
-  compact = false,
 }: {
   hall: Hall;
   rows: RankedDish[];
@@ -82,43 +90,26 @@ export function HallBoard({
   best: boolean;
   clock: Clock;
   onOpen: (key: string, serving?: Serving) => void;
-  compact?: boolean;
 }) {
   return (
-    <section className="overflow-hidden rounded-md border border-line bg-card">
-      <header className="flex items-center justify-between gap-3 bg-brand-2 px-4 py-2.5">
-        <h3 className="text-[15px] font-bold tracking-[-0.01em] text-[#e5c44d]">
-          {compact ? `Top voted at ${hall.name}` : hall.name}
-        </h3>
-        {status && !compact && (
-          <span className="flex items-center gap-1.5 text-[12px] font-medium text-white/75">
-            <span aria-hidden className={`size-1.5 rounded-full ${status.open ? "bg-emerald-400" : "bg-white/40"}`} />
-            {status.label}
-          </span>
-        )}
+    <section className="min-w-0">
+      <header className="flex items-baseline justify-between gap-f13 rounded-t-f3 bg-navy-2 px-f13 py-f8">
+        <h3 className="shrink-0 font-bold text-[#e5c44d]">{hall.name}</h3>
+        {status && <span className="min-w-0 truncate text-cap text-white/70">{status.label}</span>}
       </header>
-      {rows.length ? (
-        <ol className="p-1.5">
-          {rows.map((row, i) => (
-            <RankRow
-              key={row.dish.key}
-              rank={i + 1}
-              name={row.dish.name}
-              detail={servingLabel(row, clock)}
-              score={row.score}
-              onClick={() => onOpen(row.dish.key, row.next ?? row.last)}
-            />
-          ))}
-        </ol>
-      ) : (
-        <p className="px-4 py-6 text-center text-[13px] text-muted">
-          {hall.error
-            ? "Menu unavailable right now."
-            : best
-              ? "No upvotes yet this week. Vote on the menu to start the leaderboard."
-              : "Nothing downvoted this week."}
-        </p>
-      )}
+      <div className="rounded-b-f3 border-x border-b border-rule bg-surface px-f13 pb-f5">
+        {rows.length ? (
+          <RankList rows={rows} detail={(row) => servingLabel(row, clock)} onOpen={onOpen} />
+        ) : (
+          <p className="py-f21 text-cap text-ink-3">
+            {hall.error
+              ? "Menu unavailable right now."
+              : best
+                ? "No upvotes yet this week. Vote on the menu to start this list."
+                : "Nothing downvoted this week."}
+          </p>
+        )}
+      </div>
     </section>
   );
 }
@@ -126,32 +117,55 @@ export function HallBoard({
 /** Highest-rated dishes across every dining commons for the meal being viewed. */
 export function CampusNow({
   meal,
+  dayLabel,
   picks,
   onOpen,
 }: {
   meal: string;
+  dayLabel: string;
   picks: { dish: Dish; score: number; servings: Serving[] }[];
   onOpen: (key: string, serving?: Serving) => void;
 }) {
   if (!picks.length) return null;
   return (
-    <section className="anim-rise rounded-md border border-line bg-card p-1.5">
-      <h2 className="px-3 pt-2 pb-1 text-[12px] font-semibold uppercase tracking-[0.06em] text-muted">
-        Top rated on campus · {meal}
-      </h2>
-      <ol>
-        {picks.map(({ dish, score, servings }, i) => (
-          <RankRow
-            key={dish.key}
-            rank={i + 1}
-            name={dish.name}
-            detail={[...new Set(servings.map((s) => s.hallName))].join(" · ")}
-            score={score}
-            onClick={() => onOpen(dish.key, servings[0])}
-          />
-        ))}
-      </ol>
-    </section>
+    <RailSection title="Best on campus" note={`${meal}, ${dayLabel.toLowerCase()} · every dining commons`}>
+      <RankList
+        rows={picks.map((p) => ({ dish: p.dish, score: p.score, next: p.servings[0] }))}
+        detail={(row) => row.next?.hallName ?? ""}
+        onOpen={onOpen}
+      />
+    </RailSection>
+  );
+}
+
+export function HallRail({
+  hall,
+  rows,
+  clock,
+  onOpen,
+  onSeeAll,
+}: {
+  hall: Hall;
+  rows: RankedDish[];
+  clock: Clock;
+  onOpen: (key: string, serving?: Serving) => void;
+  onSeeAll: () => void;
+}) {
+  return (
+    <RailSection title={`Top voted at ${hall.name}`} note="This week’s menu, by student votes">
+      {rows.length ? (
+        <RankList rows={rows} detail={(row) => servingLabel(row, clock)} onOpen={onOpen} />
+      ) : (
+        <p className="py-f13 text-cap text-ink-3">No upvotes yet this week.</p>
+      )}
+      <button
+        type="button"
+        onClick={onSeeAll}
+        className="mt-f8 text-cap font-semibold text-heading underline decoration-gold decoration-2 underline-offset-4"
+      >
+        All dining commons →
+      </button>
+    </RailSection>
   );
 }
 
@@ -161,34 +175,18 @@ export function YourUpvotes({
   clock,
   onOpen,
 }: {
-  rows: { dish: Dish; score: number; next?: Serving; last?: Serving }[];
+  rows: Row[];
   clock: Clock;
   onOpen: (key: string, serving?: Serving) => void;
 }) {
   return (
-    <section className="rounded-md border border-line bg-card p-1.5">
-      <h2 className="px-3 pt-2 pb-1 text-[12px] font-semibold uppercase tracking-[0.06em] text-muted">
-        Your upvotes this week
-      </h2>
+    <RailSection title="Your upvotes" note="When the dishes you liked are served this week">
       {rows.length ? (
-        <ol>
-          {rows.map((row, i) => (
-            <RankRow
-              key={row.dish.key}
-              rank={i + 1}
-              name={row.dish.name}
-              detail={row.next || row.last ? servingLabel(row, clock, true) : ""}
-              score={row.score}
-              onClick={() => onOpen(row.dish.key, row.next ?? row.last)}
-            />
-          ))}
-        </ol>
+        <RankList rows={rows} detail={(row) => servingLabel(row, clock, true)} onOpen={onOpen} />
       ) : (
-        <p className="px-3 pt-1 pb-3 text-[13px] text-muted">
-          Upvote dishes you love and this shows when they&apos;re served next.
-        </p>
+        <p className="py-f13 text-cap text-ink-3">Upvote dishes you love and they’ll show up here.</p>
       )}
-    </section>
+    </RailSection>
   );
 }
 
@@ -203,42 +201,35 @@ export function TopVotedView({
   boards: { hall: Hall; rows: RankedDish[]; status?: HallStatus }[];
   best: boolean;
   onBest: (best: boolean) => void;
-  yours: { dish: Dish; score: number; next?: Serving; last?: Serving }[];
+  yours: Row[];
   clock: Clock;
   onOpen: (key: string, serving?: Serving) => void;
 }) {
   return (
-    <div className="anim-rise space-y-5">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-[28px] font-bold leading-tight tracking-[-0.03em] text-brand lg:text-[34px] dark:text-fg">
-            Top voted
-          </h1>
-          <p className="mt-1 max-w-xl text-[14px] text-muted">
-            Student votes on this week&apos;s menu at each dining commons. Votes stay with a dish, so favorites keep
-            their score every time they come back.
-          </p>
-        </div>
-        <div className="w-full sm:w-64">
-          <Segmented
-            label="Ranking"
-            value={best ? "best" : "worst"}
-            onChange={(v) => onBest(v === "best")}
-            options={[
-              { value: "best", label: "Most loved" },
-              { value: "worst", label: "Least loved" },
-            ]}
-          />
-        </div>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
+    <div className="anim-rise">
+      <h1 className="font-serif text-h2 font-semibold text-heading md:text-h1">Top voted</h1>
+      <p className="mt-f13 max-w-f610 leading-golden text-ink-2">
+        What students rate highest on this week’s menu at each dining commons. Votes stay with a dish, so a favorite
+        keeps its score every time it comes back.
+      </p>
+      <Tabs
+        label="Ranking"
+        className="mt-f21 max-w-f377"
+        value={best ? "best" : "worst"}
+        onChange={(v) => onBest(v === "best")}
+        options={[
+          { value: "best", label: <span className="font-semibold">Most loved</span> },
+          { value: "worst", label: <span className="font-semibold">Least loved</span> },
+        ]}
+      />
+      <div className="mt-f34 grid grid-cols-1 gap-f34 md:grid-cols-2">
         {boards.map(({ hall, rows, status }) => (
           <HallBoard key={hall.id} hall={hall} rows={rows} status={status} best={best} clock={clock} onOpen={onOpen} />
         ))}
       </div>
-
-      <YourUpvotes rows={yours} clock={clock} onOpen={onOpen} />
+      <div className="mt-f55 max-w-f610">
+        <YourUpvotes rows={yours} clock={clock} onOpen={onOpen} />
+      </div>
     </div>
   );
 }

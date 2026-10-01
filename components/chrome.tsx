@@ -31,7 +31,7 @@ export function SearchInput({
     <label className={`relative block ${className}`}>
       <span className="sr-only">Search dishes this week</span>
       <IconSearch
-        className={`pointer-events-none absolute top-1/2 left-3.5 size-[18px] -translate-y-1/2 ${onDark ? "text-white/60" : "text-muted"}`}
+        className={`pointer-events-none absolute top-1/2 left-f8 size-4 -translate-y-1/2 ${onDark ? "text-white/60" : "text-ink-3"}`}
       />
       <input
         type="search"
@@ -39,12 +39,12 @@ export function SearchInput({
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={(e) => e.key === "Escape" && onChange("")}
         autoFocus={autoFocus}
-        placeholder="Search dishes this week"
+        placeholder="Search this week’s dishes"
         enterKeyHint="search"
-        className={`h-10 w-full rounded-md pr-9 pl-10 text-[15px] outline-none transition-[background-color,box-shadow] [&::-webkit-search-cancel-button]:hidden ${
+        className={`w-full rounded-f3 pr-f34 pl-f34 text-body outline-none transition-colors [&::-webkit-search-cancel-button]:hidden ${
           onDark
-            ? "bg-white/10 text-white placeholder:text-white/55 focus:bg-white/15 focus:ring-2 focus:ring-gold/70"
-            : "border border-line bg-card text-fg placeholder:text-faint focus:ring-2 focus:ring-gold/60"
+            ? "h-f34 bg-white/10 text-white placeholder:text-white/55 focus:bg-white/15"
+            : "h-11 border border-rule-strong bg-surface text-ink placeholder:text-ink-3 focus:border-navy dark:focus:border-gold"
         }`}
       />
       {value && (
@@ -52,7 +52,7 @@ export function SearchInput({
           type="button"
           aria-label="Clear search"
           onClick={() => onChange("")}
-          className={`absolute top-1/2 right-2 grid size-6 -translate-y-1/2 place-items-center rounded ${onDark ? "text-white/70 hover:bg-white/10" : "text-muted hover:bg-chip"}`}
+          className={`absolute top-1/2 right-f5 grid size-6 -translate-y-1/2 place-items-center rounded-f3 ${onDark ? "text-white/70 hover:bg-white/10" : "text-ink-3 hover:text-ink"}`}
         >
           <IconClose className="size-3.5" />
         </button>
@@ -61,7 +61,7 @@ export function SearchInput({
   );
 }
 
-/** Aggie Blue bar with a gold rule, like housing.ucdavis.edu. */
+/** Aggie Blue masthead. Section links and search appear from tablet width up. */
 export function AppHeader({
   view,
   onView,
@@ -74,20 +74,14 @@ export function AppHeader({
   onQuery: (query: string) => void;
 }) {
   return (
-    <header className="relative z-30 border-b-[3px] border-gold bg-brand pt-[env(safe-area-inset-top)] text-white lg:sticky lg:top-0">
-      <div className="mx-auto flex h-14 max-w-[1400px] items-center gap-8 px-4 lg:h-16 lg:px-8">
-        <button type="button" onClick={() => onView("menu")} className="flex shrink-0 items-center gap-2.5">
-          <Logo className="size-8" />
-          <span className="text-left leading-none">
-            <span className="block text-[19px] font-bold tracking-[-0.02em]">{APP_NAME}</span>
-            <span className="mt-1 hidden text-[11px] font-medium tracking-wide text-gold/90 sm:block">
-              Davis dining commons
-            </span>
-          </span>
+    <header className="relative z-30 bg-navy pt-[env(safe-area-inset-top)] text-white">
+      <div className="mx-auto flex h-f55 max-w-f1042 items-center gap-f34 px-f21 desk:px-0">
+        <button type="button" onClick={() => onView("menu")} className="flex shrink-0 items-center gap-f8">
+          <Logo className="size-[26px]" />
+          <span className="text-lead font-extrabold tracking-[-0.015em]">{APP_NAME}</span>
         </button>
 
-        {/* The current section is a gold tab sitting on the gold rule, like UC Davis's own nav. */}
-        <nav className="hidden h-full items-stretch gap-1 pt-3 lg:flex" aria-label="Sections">
+        <nav className="hidden h-full items-stretch gap-f21 md:flex" aria-label="Sections">
           {VIEWS.filter((v) => v.id !== "search").map(({ id, label }) => {
             const active = view === id || (id === "menu" && view === "search");
             return (
@@ -96,63 +90,29 @@ export function AppHeader({
                 type="button"
                 onClick={() => onView(id)}
                 aria-current={active ? "page" : undefined}
-                className={`rounded-t px-4 text-[15px] font-bold transition-colors duration-200 ${
-                  active ? "bg-gold text-brand" : "text-white/75 hover:bg-white/5 hover:text-white"
-                }`}
+                className={`relative text-body font-semibold transition-colors ${active ? "text-white" : "text-white/65 hover:text-white"}`}
               >
                 {label}
+                <span
+                  aria-hidden
+                  className={`absolute inset-x-0 bottom-0 h-[3px] bg-gold transition-opacity duration-200 ${active ? "opacity-100" : "opacity-0"}`}
+                />
               </button>
             );
           })}
         </nav>
 
-        <SearchInput value={query} onChange={onQuery} onDark className="ml-auto hidden w-80 lg:block xl:w-96" />
-
-        <p className="ml-auto flex items-center gap-1.5 text-[12px] font-medium text-white/80 lg:ml-0">
-          <span className="size-1.5 rounded-full bg-emerald-400" aria-hidden />
-          Live
-        </p>
+        <SearchInput value={query} onChange={onQuery} onDark className="ml-auto hidden w-f233 md:block" />
       </div>
     </header>
   );
 }
 
-/** App-style tab bar for phones. */
-export function BottomNav({ view, onView }: { view: View; onView: (view: View) => void }) {
-  return (
-    <nav
-      aria-label="Sections"
-      className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-card/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl backdrop-saturate-150 lg:hidden"
-    >
-      <div className="mx-auto grid max-w-xl grid-cols-3">
-        {VIEWS.map(({ id, label, Icon }) => {
-          const active = view === id;
-          return (
-            <button
-              key={id}
-              type="button"
-              onClick={() => onView(id)}
-              aria-current={active ? "page" : undefined}
-              className="flex flex-col items-center gap-1 pt-2 pb-1.5 text-[11px] font-semibold"
-            >
-              <span
-                className={`grid h-7 w-14 place-items-center rounded transition-colors duration-200 ${
-                  active ? "bg-gold/30 text-brand dark:bg-gold/20 dark:text-gold" : "text-muted"
-                }`}
-              >
-                <Icon className="size-[19px]" />
-              </span>
-              <span className={active ? "text-brand dark:text-fg" : "text-muted"}>{label}</span>
-            </button>
-          );
-        })}
-      </div>
-    </nav>
-  );
-}
-
-/** Desktop sidebar list of dining commons with live open/closed status. */
-export function HallList({
+/**
+ * The dining commons as a gold bar, like the navigation on housing.ucdavis.edu.
+ * The selected hall is a tab cut out in the page color.
+ */
+export function HallBar({
   halls,
   selected,
   statuses,
@@ -164,34 +124,66 @@ export function HallList({
   onSelect: (id: string) => void;
 }) {
   return (
-    <div role="group" aria-label="Dining commons" className="space-y-1">
-      {halls.map((hall) => {
-        const active = hall.id === selected;
-        const status = statuses[hall.id];
-        return (
-          <button
-            key={hall.id}
-            type="button"
-            aria-pressed={active}
-            onClick={() => onSelect(hall.id)}
-            className={`relative w-full overflow-hidden rounded-md px-4 py-2.5 text-left transition-colors duration-200 ${
-              active ? "bg-primary text-on-primary" : "hover:bg-chip"
-            }`}
-          >
-            {active && <span aria-hidden className="absolute inset-y-0 left-0 w-1 bg-gold dark:bg-brand" />}
-            <span className="block text-[15px] font-semibold tracking-[-0.01em]">{hall.name}</span>
-            {status && (
-              <span className={`mt-0.5 flex items-center gap-1.5 text-[12px] ${active ? "opacity-80" : "text-muted"}`}>
-                <span
-                  aria-hidden
-                  className={`size-1.5 rounded-full ${status.open ? "bg-emerald-500" : active ? "bg-current opacity-50" : "bg-faint"}`}
-                />
-                {status.label}
-              </span>
-            )}
-          </button>
-        );
-      })}
-    </div>
+    <nav aria-label="Dining commons" className="bg-gold">
+      <div className="mx-auto grid max-w-f1042 grid-cols-4 desk:gap-f3">
+        {halls.map((hall) => {
+          const active = hall.id === selected;
+          const status = statuses[hall.id];
+          return (
+            <button
+              key={hall.id}
+              type="button"
+              aria-pressed={active}
+              onClick={() => onSelect(hall.id)}
+              className={`min-w-0 px-f8 pt-f8 pb-f8 text-left transition-colors duration-200 md:px-f13 ${
+                active ? "bg-paper text-heading" : "text-navy hover:bg-[#f2b400]"
+              }`}
+            >
+              <span className="block truncate text-body leading-tight font-bold">{hall.name}</span>
+              {status && (
+                <span className={`block truncate text-cap ${active ? "text-ink-2" : "text-navy/75"}`}>
+                  <span className="md:hidden">{status.short}</span>
+                  <span className="hidden md:inline">{status.label}</span>
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </nav>
+  );
+}
+
+/** Tab bar for phones. */
+export function BottomNav({ view, onView }: { view: View; onView: (view: View) => void }) {
+  return (
+    <nav
+      aria-label="Sections"
+      className="fixed inset-x-0 bottom-0 z-30 border-t border-rule bg-paper/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
+    >
+      <div className="grid grid-cols-3">
+        {VIEWS.map(({ id, label, Icon }) => {
+          const active = view === id;
+          return (
+            <button
+              key={id}
+              type="button"
+              onClick={() => onView(id)}
+              aria-current={active ? "page" : undefined}
+              className={`relative flex flex-col items-center gap-f3 pt-f8 pb-f5 text-cap font-semibold transition-colors ${
+                active ? "text-heading" : "text-ink-3"
+              }`}
+            >
+              <span
+                aria-hidden
+                className={`absolute inset-x-f34 top-0 h-[3px] bg-gold transition-opacity duration-200 ${active ? "opacity-100" : "opacity-0"}`}
+              />
+              <Icon className="size-[21px]" />
+              {label}
+            </button>
+          );
+        })}
+      </div>
+    </nav>
   );
 }
