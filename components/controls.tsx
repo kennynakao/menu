@@ -11,10 +11,7 @@ type TabOption = {
   ariaLabel?: string;
 };
 
-/**
- * Text tabs on a hairline. The selected tab gets a gold bar 61.8% of its width
- * (the golden section) that slides between tabs.
- */
+/** Quiet grouped controls with a filled selection and a visible baseline. */
 export function Tabs({
   label,
   options,
@@ -28,15 +25,11 @@ export function Tabs({
   onChange: (value: string) => void;
   className?: string;
 }) {
-  const index = Math.max(
-    0,
-    options.findIndex((o) => o.value === value),
-  );
   return (
     <div
       role="group"
       aria-label={label}
-      className={`relative grid border-b border-rule ${className}`}
+      className={`grid gap-f3 border-b border-rule py-f5 ${className}`}
       style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
     >
       {options.map((option) => {
@@ -48,22 +41,16 @@ export function Tabs({
             aria-pressed={active}
             aria-label={option.ariaLabel}
             onClick={() => onChange(option.value)}
-            className={`flex min-w-0 flex-col items-center px-f3 pt-f8 pb-f13 transition-colors duration-200 ${
-              active ? "text-heading" : "text-ink-3 hover:text-ink"
-            } ${option.muted && !active ? "opacity-45" : ""}`}
+            className={`relative flex min-h-11 min-w-0 flex-col items-center justify-center gap-0.5 rounded-f3 px-f3 py-f8 transition-colors duration-200 ${
+              active ? "bg-heading/[0.07] text-heading" : "text-ink-2 hover:bg-heading/[0.04] hover:text-ink"
+            } ${option.muted && !active ? "text-ink-3" : ""}`}
           >
             {option.label}
             {option.detail}
+            {active && <span aria-hidden className="absolute inset-x-f13 bottom-0 h-0.5 bg-heading" />}
           </button>
         );
       })}
-      <span
-        aria-hidden
-        className="pointer-events-none absolute -bottom-px left-0 h-[3px] transition-transform duration-300 ease-out"
-        style={{ width: `${100 / options.length}%`, transform: `translateX(${index * 100}%)` }}
-      >
-        <span className="mx-auto block h-full w-[61.8%] bg-gold" />
-      </span>
     </div>
   );
 }
@@ -110,18 +97,17 @@ export const DIET_MARKS: Record<DietTag, { short: string; title: string; color: 
   halal: { short: "H", title: "Halal", color: "text-halal" },
 };
 
-/** Printed-menu style symbols. Vegan implies vegetarian, so only the stronger mark shows. */
-export function DietMarks({ tags }: { tags: DietTag[] }) {
+/** Use full dietary names; vegan implies vegetarian, so show only the stronger label. */
+export function DietMarks({ tags, includeHalal = true }: { tags: DietTag[]; includeHalal?: boolean }) {
   return tags
+    .filter((tag) => includeHalal || tag !== "halal")
     .filter((tag) => !(tag === "vegetarian" && tags.includes("vegan")))
     .map((tag) => (
-      <abbr
+      <span
         key={tag}
-        title={DIET_MARKS[tag].title}
-        aria-label={DIET_MARKS[tag].title}
-        className={`ml-f5 inline-grid h-[16px] min-w-[16px] -translate-y-px place-items-center rounded-f3 border border-current px-f3 align-middle text-micro font-bold tracking-[0.02em] no-underline ${DIET_MARKS[tag].color}`}
+        className={`ml-f8 inline-block whitespace-nowrap align-baseline text-cap font-medium ${DIET_MARKS[tag].color}`}
       >
-        {DIET_MARKS[tag].short}
-      </abbr>
+        {DIET_MARKS[tag].title}
+      </span>
     ));
 }

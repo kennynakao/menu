@@ -1,35 +1,31 @@
 @import "tailwindcss";
 
-/*
- * Colors from UC Davis Student Housing & Dining Services (housing.ucdavis.edu):
- * Aggie Blue #022851, Aggie Gold #FFBF00, navy #143061 caption bars and a
- * warm cream page.
- */
+/* Paper, ink and restrained UC Davis accents. */
 :root {
-  --paper: #f9f5ea;
+  --paper: #f8f8f5;
   --surface: #ffffff;
-  --ink: #0e1c33;
-  --ink-2: #3f4b61;
-  --ink-3: #5f6879;
-  --heading: #022851;
-  --rule: #e2dbc8;
-  --rule-strong: #c9bfa6;
+  --ink: #202b36;
+  --ink-2: #4e5963;
+  --ink-3: #69737b;
+  --heading: #183149;
+  --rule: #e1e4e3;
+  --rule-strong: #bcc5c8;
   --navy: #022851;
   --navy-2: #143061;
-  --gold: #ffbf00;
-  --gold-deep: #876200;
-  --gold-wash: #fff1c2;
+  --gold: #e0b64b;
+  --gold-deep: #796021;
+  --gold-wash: #f4efdf;
   --down: #b42318;
-  --vegan: #2e7d32;
-  --vegetarian: #5c7f00;
-  --halal: #0b6680;
+  --vegan: #3a6c50;
+  --vegetarian: #526d44;
+  --halal: #336879;
   color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --paper: #07142a;
-    --surface: #0c1d38;
+    --paper: #111a23;
+    --surface: #17232e;
     --ink: #eef2f8;
     --ink-2: #bcc7d8;
     --ink-3: #8a99b0;
@@ -38,9 +34,9 @@
     --rule-strong: rgb(188 199 216 / 0.3);
     --navy: #022851;
     --navy-2: #143061;
-    --gold: #ffbf00;
-    --gold-deep: #ffcf4d;
-    --gold-wash: rgb(255 191 0 / 0.14);
+    --gold: #e0b64b;
+    --gold-deep: #dfc786;
+    --gold-wash: rgb(224 182 75 / 0.1);
     --down: #ff8a80;
     --vegan: #7fd18a;
     --vegetarian: #bcdc72;
@@ -72,11 +68,7 @@
 }
 
 @theme {
-  /*
-   * Spacing is the Fibonacci sequence: each step is ~1.618× the last, so any
-   * two neighbouring gaps sit in the golden ratio. Layout widths use it too:
-   * a 610px menu beside a 377px rail with a 55px gutter.
-   */
+  /* Shared spacing and the menu / sidebar widths. */
   --spacing-f2: 2px;
   --spacing-f3: 3px;
   --spacing-f5: 5px;
@@ -92,7 +84,7 @@
   --spacing-f610: 610px;
   --spacing-f1042: 1042px;
 
-  /* Type scale: 16px × √φ^n (≈1.272 per step) — 10, 12.6, 16, 20.4, 25.9, 32.9, 41.9 */
+  /* Shared text sizes. */
   --text-micro: 0.625rem;
   --text-micro--line-height: 1;
   --text-cap: 0.786rem;
@@ -138,7 +130,7 @@ button {
 }
 
 :focus-visible {
-  outline: 2px solid var(--gold);
+  outline: 2px solid var(--halal);
   outline-offset: 2px;
 }
 

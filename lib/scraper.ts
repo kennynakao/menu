@@ -155,12 +155,14 @@ function parseDish($: CheerioAPI, panel: Parameters<CheerioAPI>[0], withIngredie
   const icons = new Set(
     $panel
       .find(".mealDetails img[alt]")
-      .map((_, img) => ($(img).attr("alt") ?? "").toLowerCase())
+      .map((_, img) => clean($(img).attr("alt") ?? "").toLowerCase())
       .get(),
   );
   const tags: DietTag[] = [];
   if (classes.has("isVegan") || icons.has("vegan")) tags.push("vegan");
   if (classes.has("isVegetarian") || icons.has("vegetarian") || tags.includes("vegan")) tags.push("vegetarian");
+  // Only the source's dish-level designation is evidence of halal status.
+  // A vegan tag or a halal ingredient does not establish the whole dish's status.
   if (classes.has("isHalal") || icons.has("halal")) tags.push("halal");
 
   let description: string | undefined;

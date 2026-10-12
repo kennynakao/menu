@@ -3,9 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { AppHeader, BottomNav, HallBar, type View } from "@/components/chrome";
-import { DIET_MARKS, Tabs } from "@/components/controls";
+import { Tabs } from "@/components/controls";
 import { DishRow } from "@/components/dish-row";
-import { FilterBar, FilterPanel } from "@/components/filters";
+import { FilterBar, FilterPanel, HalalGuide } from "@/components/filters";
+import { getHalalStatus } from "@/lib/dietary";
 import { SearchView } from "@/components/search-view";
 import { CampusNow, HallRail, TopVotedView, YourUpvotes, type Clock } from "@/components/top-voted";
 import { NO_FILTERS, filterCount, matchesFilters, parseFilters, type Filters } from "@/lib/filters";
@@ -30,7 +31,7 @@ import {
   type Selection,
 } from "@/lib/menu-view";
 import { DAVIS_TZ, davisDate, davisMinutes, formatDay, formatRange, formatTime } from "@/lib/time";
-import type { DietTag, Dish, Hall, MenuData, VoteTally } from "@/lib/types";
+import type { Dish, Hall, MenuData, VoteTally } from "@/lib/types";
 import { useVotes } from "@/lib/use-votes";
 
 // The colors of the zone signs inside the dining commons.
@@ -48,6 +49,7 @@ const MEALS = ["Breakfast", "Lunch", "Dinner"];
 const PREFS_KEY = "dc-menu:prefs";
 // The server re-scrapes every 15 minutes; anything older means we're looking at a cached copy.
 const STALE_MS = 20 * 60_000;
+const dishRowId = (key: string, index: number, zone: string) => `dish-${key}-${index}-${zone.toLowerCase()}`;
 
 type Prefs = { hall?: string; filters?: Filters };
 
@@ -82,7 +84,7 @@ export function MenuApp({ menu }: { menu: MenuData }) {
   const [best, setBest] = useState(true);
   const [ready, setReady] = useState(false);
   // A new object per tap so tapping the same dish again re-scrolls.
-  const [jump, setJump] = useState<{ key: string } | null>(null);
+  const [jump, setJump] = useState<{ key: string; rowId?: string } | null>(null);
   const refreshAttempts = useRef(0);
 
   useEffect(() => {
@@ -134,7 +136,8 @@ export function MenuApp({ menu }: { menu: MenuData }) {
   // Runs after the (possibly new) hall has rendered, so the row exists.
   useEffect(() => {
     if (!jump) return;
-    document.getElementById(`dish-${jump.key}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    const row = jump.rowId ? document.getElementById(jump.rowId) : document.querySelector(`[data-dish-key="${jump.key}"]`);
+    row?.scrollIntoView({ behavior: "smooth", block: "center" });
     const timer = setTimeout(() => setJump(null), 1700);
     return () => clearTimeout(timer);
   }, [jump]);
@@ -178,12 +181,15 @@ export function MenuApp({ menu }: { menu: MenuData }) {
     setView("menu");
     setQuery("");
     if (serving) select({ hall: serving.hall, date: serving.date, meal: serving.meal });
-    setJump({ key });
+    setJump({ key, rowId: serving ? dishRowId(key, serving.dishIndex, serving.zone) : undefined });
   };
 
   const zones = (meal?.zones ?? [])
-    .map((zone) => ({ ...zone, items: zone.dishes.map((i) => menu.dishes[i]).filter((d) => matchesFilters(d, filters)) }))
+    .map((zone) => ({ ...zone, items: zone.dishes.map((i) => ({ dish: menu.dishes[i], index: i })).filter(({ dish }) => matchesFilters(dish, filters)) }))
     .filter((zone) => zone.items.length);
+  const mealDishes = [...new Set(meal?.zones.flatMap((zone) => zone.dishes) ?? [])].map((i) => menu.dishes[i]);
+  const halalCount = mealDishes.filter((dish) => getHalalStatus(dish) === "labeled").length;
+  const visibleCount = mealDishes.filter((dish) => matchesFilters(dish, filters)).length;
 
   // Highest-rated dishes across every dining commons for the meal being viewed.
   const campusPicks = useMemo(() => {
@@ -196,7 +202,7 @@ export function MenuApp({ menu }: { menu: MenuData }) {
           const s = score(tallies[dish.key]);
           if (s <= 0 || byKey.has(dish.key) || !matchesFilters(dish, filters)) continue;
           const here = (servings.get(dish.key) ?? []).filter(
-            (x) => x.date === selection.date && x.meal === selection.meal,
+            (x) => x.date === selection.date && x.meal === selection.meal && matchesFilters(menu.dishes[x.dishIndex], filters),
           );
           byKey.set(dish.key, { dish, score: s, servings: here });
         }
@@ -219,8 +225,8 @@ export function MenuApp({ menu }: { menu: MenuData }) {
     [menu, servings, hall, tallies, filters, today, minutes],
   );
   const yours = useMemo(
-    () => upvotedThisWeek(menu, servings, tallies, today, minutes),
-    [menu, servings, tallies, today, minutes],
+    () => upvotedThisWeek(menu, servings, tallies, filters, today, minutes),
+    [menu, servings, tallies, filters, today, minutes],
   );
   const hits = useMemo(
     () => searchDishes(menu, servings, query, filters, { today, minutes }),
@@ -248,12 +254,18 @@ export function MenuApp({ menu }: { menu: MenuData }) {
       {view === "menu" && hall ? (
         <HallBar halls={menu.halls} selected={hall.id} statuses={statuses} onSelect={(id) => select({ hall: id })} />
       ) : (
-        <div aria-hidden className="h-[3px] bg-gold" />
+        <div aria-hidden className="h-px bg-rule" />
       )}
 
       <div
-        className={`mx-auto max-w-f1042 px-f21 pt-f34 transition-opacity duration-300 desk:px-0 ${ready ? "opacity-100" : "opacity-0"}`}
+        className={`mx-auto max-w-f1042 px-f21 pt-f21 transition-opacity duration-300 desk:px-0 ${ready ? "opacity-100" : "opacity-0"}`}
       >
+        {view !== "menu" && (
+          <div className="mb-f21 max-w-f610">
+            <FilterBar filters={filters} onChange={changeFilters} open={filtersOpen} onToggle={() => setFiltersOpen((o) => !o)} />
+            {filtersOpen && <FilterPanel filters={filters} onChange={changeFilters} />}
+          </div>
+        )}
         {view === "top" ? (
           <TopVotedView boards={boards} best={best} onBest={setBest} yours={yours} clock={clock} onOpen={openDish} />
         ) : view === "search" ? (
@@ -270,11 +282,15 @@ export function MenuApp({ menu }: { menu: MenuData }) {
         ) : (
           <div className="desk:grid desk:grid-cols-[var(--spacing-f610)_var(--spacing-f377)] desk:gap-f55">
             <main className="mx-auto min-w-0 max-w-f610 desk:mx-0">
-              <h1 className="font-serif text-h2 font-semibold text-heading md:text-h1">{hall?.name}</h1>
-              <p className="mt-f5 text-ink-2">
-                {heading.weekday}, {heading.month} {heading.day}
-                {isToday && status ? ` · ${status.label}` : ""}
-              </p>
+              <p className="mb-f8 text-cap font-semibold tracking-[0.12em] text-ink-3 uppercase">UC Davis dining menus</p>
+              <div className="flex items-baseline justify-between gap-f13">
+                <h1 className="font-serif text-h2 font-semibold text-heading md:text-h1">{hall?.name}</h1>
+                {hall && <a href={hall.url} target="_blank" rel="noreferrer" className="shrink-0 text-cap font-medium text-ink-2 underline decoration-rule-strong underline-offset-4">Official menu ↗</a>}
+              </div>
+              <div className="mt-f8 flex flex-wrap items-baseline gap-x-f13 gap-y-f3">
+                <p className="text-ink-2">{heading.weekday}, {heading.month} {heading.day}</p>
+                {isToday && status && <p className="text-cap text-ink-3">{status.label}</p>}
+              </div>
 
               {week.length > 0 && (
                 <Tabs
@@ -315,7 +331,7 @@ export function MenuApp({ menu }: { menu: MenuData }) {
                           {!served
                             ? "Closed"
                             : servingNow && window
-                              ? `Now · until ${formatTime(window[1])}`
+                              ? `Now–${formatTime(window[1])}`
                               : window
                                 ? formatRange(window[0], window[1])
                                 : "Open"}
@@ -334,7 +350,13 @@ export function MenuApp({ menu }: { menu: MenuData }) {
                   onToggle={() => setFiltersOpen((o) => !o)}
                 />
                 {filtersOpen && <FilterPanel filters={filters} onChange={changeFilters} />}
+                <HalalGuide />
               </div>
+
+              {mealDishes.length > 0 && <p className="mt-f21 text-cap text-ink-3" role="status">
+                {`${visibleCount} ${filterCount(filters) ? "matching " : ""}${visibleCount === 1 ? "dish" : "dishes"}`}
+                {` · ${halalCount} labeled halal on this menu`}
+              </p>}
 
               {campusPicks.length > 0 && (
                 <div className="mt-f34 desk:hidden">
@@ -359,12 +381,12 @@ export function MenuApp({ menu }: { menu: MenuData }) {
                 onHall={(id) => select({ hall: id })}
                 tallies={tallies}
                 onVote={vote}
-                flashKey={jump?.key}
+                flashId={jump?.rowId}
               />
             </main>
 
-            <aside className="hidden desk:block">
-              <div className="sticky top-f21 space-y-f55">
+            <aside className="hidden border-l border-rule pl-f34 desk:block">
+              <div className="sticky top-f21 space-y-f34">
                 <CampusNow meal={selection.meal} dayLabel={dayLabel} picks={campusPicks} onOpen={openDish} />
                 {hall && (
                   <HallRail
@@ -394,15 +416,18 @@ function upvotedThisWeek(
   menu: MenuData,
   servings: Map<string, Serving[]>,
   tallies: Record<string, VoteTally>,
+  filters: Filters,
   today: string,
   minutes: number,
 ) {
   const rows: { dish: Dish; score: number; next?: Serving; last?: Serving }[] = [];
   for (const [key, tally] of Object.entries(tallies)) {
-    const list = servings.get(key);
+    const list = servings.get(key)?.filter((serving) => matchesFilters(menu.dishes[serving.dishIndex], filters));
     if (tally.mine !== 1 || !list?.length) continue;
-    const dish = menu.dishes.find((d) => d.key === key)!;
-    rows.push({ dish, score: score(tally), next: list.find((s) => isUpcoming(s, today, minutes)), last: list.at(-1) });
+    const next = list.find((s) => isUpcoming(s, today, minutes));
+    const last = list.at(-1)!;
+    const dish = menu.dishes[(next ?? last).dishIndex];
+    rows.push({ dish, score: score(tally), next, last });
   }
   // Upcoming servings in time order, then dishes that already had their last serving.
   const when = (r: (typeof rows)[number]) =>
@@ -436,10 +461,10 @@ function MenuZones({
   onHall,
   tallies,
   onVote,
-  flashKey,
+  flashId,
 }: {
   hall?: Hall;
-  zones: { color: string; hours?: string; items: Dish[] }[];
+  zones: { color: string; hours?: string; items: { dish: Dish; index: number }[] }[];
   mealName: string;
   mealHasDishes: boolean;
   dayOpen: boolean;
@@ -451,7 +476,7 @@ function MenuZones({
   onHall: (id: string) => void;
   tallies: Record<string, VoteTally>;
   onVote: (key: string, value: -1 | 0 | 1) => void;
-  flashKey?: string;
+  flashId?: string;
 }) {
   if (hall?.error) {
     return (
@@ -505,23 +530,26 @@ function MenuZones({
   return (
     <div className="anim-rise">
       {zones.map((zone) => (
-        <section key={zone.color} className="mt-f34">
+        <section key={zone.color} className="mt-f21">
           <header
-            className="flex items-baseline justify-between border-t-[3px] pt-f8"
-            style={{ borderColor: ZONE_COLORS[zone.color.toLowerCase()] ?? "var(--rule-strong)" }}
+            className="flex flex-wrap items-baseline justify-between gap-x-f13 gap-y-f3 border-b border-rule pb-f8"
           >
-            <h2 className="text-lead font-semibold text-heading">{zone.color} Zone</h2>
+            <h2 className="flex items-center gap-f8 text-body font-semibold text-heading">
+              <span aria-hidden className="size-2 rounded-full" style={{ background: ZONE_COLORS[zone.color.toLowerCase()] ?? "var(--rule-strong)" }} />
+              {zone.color} Zone
+            </h2>
             {zone.hours && <span className="text-cap text-ink-3 tabular-nums">{zone.hours}</span>}
           </header>
           <ul className="mt-f3">
-            {zone.items.map((dish, i) => (
+            {zone.items.map(({ dish, index }, i) => (
               <DishRow
                 key={`${dish.key}-${i}`}
                 dish={dish}
+                rowId={dishRowId(dish.key, index, zone.color)}
                 tally={tallies[dish.key]}
                 onVote={(value) => onVote(dish.key, value)}
                 sourceUrl={hall?.url ?? "https://housing.ucdavis.edu/dining/menus/"}
-                flash={flashKey === dish.key}
+                flash={flashId === dishRowId(dish.key, index, zone.color)}
               />
             ))}
           </ul>
@@ -544,15 +572,6 @@ function Footer({ updatedAt, persistent }: { updatedAt: string; persistent: bool
   return (
     <footer className="mt-f89 max-w-f610 space-y-f5 border-t border-rule pt-f21 pb-f34 text-cap text-ink-3">
       <p>
-        {(Object.keys(DIET_MARKS) as DietTag[]).map((tag, i) => (
-          <span key={tag}>
-            {i > 0 && " · "}
-            <span className={`font-bold ${DIET_MARKS[tag].color}`}>{DIET_MARKS[tag].short}</span>{" "}
-            {DIET_MARKS[tag].title.toLowerCase()}
-          </span>
-        ))}
-      </p>
-      <p>
         Menus come straight from{" "}
         <a
           className="font-semibold text-ink-2 underline decoration-rule-strong underline-offset-4 hover:decoration-gold"
@@ -565,10 +584,10 @@ function Footer({ updatedAt, persistent }: { updatedAt: string; persistent: bool
         and refresh on their own. Last updated {timeFmt.format(new Date(updatedAt))}.
       </p>
       <p>Votes stay with a dish, so they’re still there when it comes back.</p>
-      <p>Independent student project, not affiliated with UC Davis. Confirm allergens with dining staff.</p>
+      <p>Independent student project, not affiliated with UC Davis. Confirm dietary needs and allergens with dining staff.</p>
       {!persistent && (
         <p className="mt-f13 border-l-[3px] border-gold pl-f8 text-ink-2">
-          Votes are only kept in memory. Connect Upstash Redis in Vercel to save them.
+          Votes are temporarily stored and may reset.
         </p>
       )}
     </footer>

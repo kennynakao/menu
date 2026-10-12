@@ -43,7 +43,7 @@ export function SearchInput({
         enterKeyHint="search"
         className={`w-full rounded-f3 pr-f34 pl-f34 text-body outline-none transition-colors [&::-webkit-search-cancel-button]:hidden ${
           onDark
-            ? "h-f34 bg-white/10 text-white placeholder:text-white/55 focus:bg-white/15"
+            ? "h-10 border border-white/15 bg-white/5 text-white placeholder:text-white/60 focus:border-white/40 focus:bg-white/10"
             : "h-11 border border-rule-strong bg-surface text-ink placeholder:text-ink-3 focus:border-navy dark:focus:border-gold"
         }`}
       />
@@ -74,12 +74,13 @@ export function AppHeader({
   onQuery: (query: string) => void;
 }) {
   return (
-    <header className="relative z-30 bg-navy pt-[env(safe-area-inset-top)] text-white">
-      <div className="mx-auto flex h-f55 max-w-f1042 items-center gap-f34 px-f21 desk:px-0">
-        <button type="button" onClick={() => onView("menu")} className="flex shrink-0 items-center gap-f8">
+    <header className="relative z-30 bg-navy pt-[env(safe-area-inset-top)] text-white [&_:focus-visible]:outline-gold">
+      <div className="mx-auto flex h-[68px] max-w-f1042 items-center gap-f34 px-f21 desk:px-0">
+        <button type="button" onClick={() => onView("menu")} aria-label={`${APP_NAME} home`} className="flex shrink-0 items-center gap-f8">
           <Logo className="size-[26px]" />
-          <span className="text-lead font-extrabold tracking-[-0.015em]">{APP_NAME}</span>
+          <span className="text-lead font-bold tracking-[-0.015em]">{APP_NAME}</span>
         </button>
+        <span className="ml-auto text-cap text-white/70 md:hidden">UC Davis dining</span>
 
         <nav className="hidden h-full items-stretch gap-f21 md:flex" aria-label="Sections">
           {VIEWS.filter((v) => v.id !== "search").map(({ id, label }) => {
@@ -95,7 +96,7 @@ export function AppHeader({
                 {label}
                 <span
                   aria-hidden
-                  className={`absolute inset-x-0 bottom-0 h-[3px] bg-gold transition-opacity duration-200 ${active ? "opacity-100" : "opacity-0"}`}
+                  className={`absolute inset-x-0 bottom-0 h-0.5 bg-gold transition-opacity duration-200 ${active ? "opacity-100" : "opacity-0"}`}
                 />
               </button>
             );
@@ -108,10 +109,7 @@ export function AppHeader({
   );
 }
 
-/**
- * The dining commons as a gold bar, like the navigation on housing.ucdavis.edu.
- * The selected hall is a tab cut out in the page color.
- */
+/** Hall selection with a persistent underline and the current service status. */
 export function HallBar({
   halls,
   selected,
@@ -124,8 +122,8 @@ export function HallBar({
   onSelect: (id: string) => void;
 }) {
   return (
-    <nav aria-label="Dining commons" className="bg-gold">
-      <div className="mx-auto grid max-w-f1042 grid-cols-4 desk:gap-f3">
+    <nav aria-label="Dining commons" className="border-b border-rule bg-surface">
+      <div className="mx-auto grid max-w-f1042 grid-cols-4">
         {halls.map((hall) => {
           const active = hall.id === selected;
           const status = statuses[hall.id];
@@ -135,17 +133,19 @@ export function HallBar({
               type="button"
               aria-pressed={active}
               onClick={() => onSelect(hall.id)}
-              className={`min-w-0 px-f8 pt-f8 pb-f8 text-left transition-colors duration-200 md:px-f13 ${
-                active ? "bg-paper text-heading" : "text-navy hover:bg-[#f2b400]"
+              className={`relative min-w-0 px-f8 py-f13 text-left transition-colors duration-200 md:px-f21 ${
+                active ? "bg-paper text-heading" : "text-ink-2 hover:bg-paper/60 hover:text-ink"
               }`}
             >
-              <span className="block truncate text-body leading-tight font-bold">{hall.name}</span>
+              <span className="block truncate text-[14px] leading-tight font-semibold md:text-body">{hall.name}</span>
               {status && (
-                <span className={`block truncate text-cap ${active ? "text-ink-2" : "text-navy/75"}`}>
-                  <span className="md:hidden">{status.short}</span>
-                  <span className="hidden md:inline">{status.label}</span>
+                <span className="mt-f5 flex min-w-0 items-center gap-f5 text-[11px] text-ink-3 md:text-cap">
+                  <span aria-hidden className={`size-1.5 shrink-0 rounded-full ${status.open ? "bg-vegan" : "bg-ink-3/40"}`} />
+                  <span className="truncate md:hidden">{status.short}</span>
+                  <span className="hidden truncate md:inline">{status.label}</span>
                 </span>
               )}
+              <span aria-hidden className={`absolute inset-x-f8 -bottom-px h-0.5 bg-heading transition-opacity duration-200 md:inset-x-f21 ${active ? "opacity-100" : "opacity-0"}`} />
             </button>
           );
         })}
@@ -176,7 +176,7 @@ export function BottomNav({ view, onView }: { view: View; onView: (view: View) =
             >
               <span
                 aria-hidden
-                className={`absolute inset-x-f34 top-0 h-[3px] bg-gold transition-opacity duration-200 ${active ? "opacity-100" : "opacity-0"}`}
+                className={`absolute inset-x-f34 top-0 h-0.5 bg-heading transition-opacity duration-200 ${active ? "opacity-100" : "opacity-0"}`}
               />
               <Icon className="size-[21px]" />
               {label}

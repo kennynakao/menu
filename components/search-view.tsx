@@ -65,7 +65,7 @@ export function SearchView({
             {hits.length} {hits.length === 1 ? "dish" : "dishes"} on this week’s menus
           </p>
           <ul className="mt-f21 border-t-2 border-heading/80">
-            {hits.map(({ dish, servings }) => {
+            {hits.map(({ dish, servings, sharedTags }) => {
               const s = score(tallies[dish.key]);
               const upcoming = servings.filter((x) => isUpcoming(x, clock.today, minutes));
               const past = servings.filter((x) => !upcoming.includes(x));
@@ -74,7 +74,7 @@ export function SearchView({
                   <div className="flex items-baseline justify-between gap-f13">
                     <p>
                       <span className="font-semibold text-ink">{dish.name}</span>
-                      <DietMarks tags={dish.tags} />
+                      <DietMarks tags={sharedTags} />
                     </p>
                     {s !== 0 && (
                       <span className={`shrink-0 font-semibold tabular-nums ${s < 0 ? "text-down" : "text-heading"}`}>
@@ -82,9 +82,12 @@ export function SearchView({
                       </span>
                     )}
                   </div>
+                  {!sharedTags.includes("halal") && (
+                    <p className="mt-f3 text-cap text-ink-3">Halal labeling may differ by serving. Open a menu to check.</p>
+                  )}
                   <p className="mt-f3 text-cap leading-golden text-ink-2">
                     {upcoming.slice(0, MAX_UPCOMING).map((serving, i) => (
-                      <Fragment key={`${serving.hall}-${serving.date}-${serving.meal}`}>
+                      <Fragment key={`${serving.hall}-${serving.date}-${serving.meal}-${serving.zone}-${serving.dishIndex}`}>
                         {i > 0 && " · "}
                         <button
                           type="button"
