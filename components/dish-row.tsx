@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useId, useState, type ReactNode } from "react";
 import { DietMarks } from "@/components/controls";
+import { getHalalStatus } from "@/lib/dietary";
 import type { Dish, VoteTally, VoteValue } from "@/lib/types";
 
 const NO_VOTES: VoteTally = { up: 0, down: 0, mine: 0 };
@@ -37,7 +38,7 @@ export function VoteControl({
   };
 
   return (
-    <div className="-my-f8 -mr-f8 flex shrink-0 items-center">
+    <div className="-my-f8 -mr-f8 flex shrink-0 items-center" role="group" aria-label={`Rate ${name}`}>
       <button
         type="button"
         aria-label={`Upvote ${name}`}
@@ -89,14 +90,18 @@ export function DishRow({
   onVote,
   sourceUrl,
   flash,
+  rowId,
 }: {
   dish: Dish;
   tally?: VoteTally;
   onVote: (value: VoteValue) => void;
   sourceUrl: string;
   flash?: boolean;
+  rowId: string;
 }) {
   const [open, setOpen] = useState(false);
+  const detailsId = useId();
+  const halal = getHalalStatus(dish) === "labeled";
   const allergens = dish.allergens.filter((a) => a !== "Shared fryer");
   const sharedFryer = dish.allergens.includes("Shared fryer");
   const nutrition = [
@@ -108,20 +113,28 @@ export function DishRow({
   ].filter(Boolean);
 
   return (
-    <li id={`dish-${dish.key}`} className={`scroll-mt-f144 border-t border-rule first:border-t-0 ${flash ? "anim-flash" : ""}`}>
-      <div className="flex items-start gap-f13 py-f13">
+    <li id={rowId} data-dish-key={dish.key} className={`scroll-mt-f144 border-t border-rule first:border-t-0 ${flash ? "anim-flash" : ""}`}>
+      <div className="flex items-start gap-f8 py-f13">
         <button
           type="button"
           onClick={() => setOpen((o) => !o)}
           aria-expanded={open}
+          aria-controls={detailsId}
           className="group min-w-0 flex-1 text-left"
         >
           <span className="text-body leading-snug font-semibold text-ink decoration-rule-strong underline-offset-4 group-hover:underline">
             {dish.name}
           </span>
-          <DietMarks tags={dish.tags} />
-          <span className="mt-f2 flex items-center gap-f5 text-cap text-ink-3 tabular-nums">
+          <span className="mt-f5 flex flex-wrap items-center gap-x-f8 gap-y-f3 text-cap">
+            <span className={halal ? "font-semibold text-halal" : "text-ink-3"}>
+              {halal ? "Halal" : "Not labeled halal"}
+            </span>
+            <DietMarks tags={dish.tags} includeHalal={false} />
+          </span>
+          <span className="mt-f5 flex flex-wrap items-center gap-f5 text-cap text-ink-3 tabular-nums">
             {dish.calories !== undefined && <span>{dish.calories} cal</span>}
+            {dish.protein !== undefined && <span>· {dish.protein} g protein</span>}
+            <span className="sr-only">Ingredients and nutrition</span>
             <svg
               viewBox="0 0 10 10"
               className={`size-2.5 transition-transform duration-300 ease-out ${open ? "rotate-180" : ""}`}
@@ -138,18 +151,22 @@ export function DishRow({
       </div>
 
       <div
+        id={detailsId}
         className="grid transition-[grid-template-rows] duration-300 ease-out"
         style={{ gridTemplateRows: open ? "1fr" : "0fr" }}
         inert={!open}
       >
         <div className="overflow-hidden">
-          <div className="pr-f55 pb-f21">
+          <div className="pb-f21 sm:pr-f55">
             {dish.description && (
               <p className="max-w-[34em] font-serif text-body leading-golden text-ink-2 italic">{dish.description}</p>
             )}
             <dl className="mt-f13 grid grid-cols-[auto_1fr] gap-x-f13 gap-y-f5 text-cap">
+              <Fact term="Halal status">
+                {halal ? "Labeled halal by UC Davis Dining." : "Not labeled halal on the UC Davis menu. Ask dining staff to confirm."}
+              </Fact>
               <Fact term="Contains">
-                {allergens.length ? allergens.join(", ") : "No major allergens"}
+                {allergens.length ? allergens.join(", ") : "No major allergens listed"}
                 {sharedFryer && " · Cooked in a shared fryer"}
               </Fact>
               {nutrition.length > 0 && <Fact term="Nutrition">{nutrition.join(" · ")}</Fact>}

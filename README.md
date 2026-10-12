@@ -7,7 +7,8 @@ Live menus for every UC Davis dining commons — **Segundo, Tercero, Cuarto and 
 - **Opens to what matters.** Today's date and the meal being served right now, at your usual dining commons, with whether each one is open right now.
 - **Top voted.** A leaderboard for each dining commons (most and least loved dishes on this week's menu, with when each is served next), top-rated dishes on campus for the current meal, and "your upvotes this week".
 - **Search.** Find a dish and see every dining commons and meal serving it this week.
-- **Filters.** Vegan, vegetarian, halal and 20g+ protein, plus allergens to avoid (dairy, egg, gluten, soy, sesame, fish, shellfish, tree nuts, peanuts, alcohol, shared fryer). Allergens and nutrition for every dish.
+- **Dietary labels.** Every menu dish says **Halal** or **Not labeled halal**, based on UC Davis's published dish labels. Missing a label does not establish that a dish is non-halal. Search and rankings preserve the recipe's actual hall and meal, even when dishes share a name and votes.
+- **Filters.** Halal, vegetarian and vegan are visible above the menu, search and rankings. More filters include 20g+ protein and allergens to avoid (dairy, egg, gluten, soy, sesame, fish, shellfish, tree nuts, peanuts, alcohol, shared fryer). Allergen and nutrition details remain one tap away.
 - **Desktop and mobile layouts.** A menu column with a leaderboard rail on wide screens; a single column with a bottom tab bar on phones. Light and dark mode.
 
 ## Design
@@ -15,9 +16,9 @@ Live menus for every UC Davis dining commons — **Segundo, Tercero, Cuarto and 
 Built to read like a printed dining menu rather than an app dashboard, in UC Davis colors.
 
 - **Type:** Figtree and Newsreader, free stand-ins for UC Davis's brand faces (Proxima Nova and Freight). Sizes follow a √φ scale (each step ≈1.272×): 10, 12.6, 16, 20.4, 25.9, 32.9 and 41.9px (`text-cap`, `text-body`, `text-lead`, `text-h3`, `text-h2`, `text-h1`). Descriptions use a φ (1.618) line height.
-- **Spacing:** Fibonacci steps only (3, 5, 8, 13, 21, 34, 55, 89px) as `f3`…`f89`, so neighbouring gaps sit in the golden ratio.
-- **Layout:** on desktop, a 610px menu column beside a 377px rail with a 55px gutter, which puts the two columns in the golden ratio.
-- **Color:** Aggie Blue `#022851`, Aggie Gold `#FFBF00` and the cream page from housing.ucdavis.edu. Zone rules use the colors of the zone signs in the dining commons.
+- **Spacing:** shared spacing tokens keep menu rows and controls consistent, with comfortable touch targets.
+- **Layout:** a 610px menu column and a quieter leaderboard rail on desktop; a single column and bottom navigation on phones.
+- **Color:** an Aggie Blue masthead, neutral hall navigation, subtle selected states and small zone-color markers. Full dietary words replace abbreviations. Light and dark palettes keep contrast clear.
 
 Tokens live in `app/globals.css`.
 
@@ -28,6 +29,18 @@ Tokens live in `app/globals.css`.
 3. **Redeploy** so the new variables are picked up.
 
 Without step 2 the site still works, but votes live in server memory and disappear. The footer shows a warning until a database is connected.
+
+### Visitor and page-view tracking
+
+Vercel Web Analytics is installed through `@vercel/analytics`, with `<Analytics />` from `@vercel/analytics/next` in `app/layout.tsx`. It runs across the app without API keys or a webhook endpoint. This tracks page visits; the in-page hall, meal and filter controls are not separate routes or custom events.
+
+In the Vercel project's **Analytics** tab, enable Web Analytics if it is not already enabled, then deploy this commit and visit the deployed site. Confirm visits appear in the Analytics dashboard (content blockers can prevent collection). See [Vercel's setup guide](https://vercel.com/docs/analytics/quickstart).
+
+Halal preferences, dietary filters, vote choices and search text are not sent as custom analytics events.
+
+### Halal label sources
+
+Halal labels come only from UC Davis's per-dish `isHalal` class or exact `Halal` diet icon. Names, ingredient mentions, vegan/vegetarian tags and missing allergen data never establish halal status. The menu links to the [UC Davis halal guide](https://housing.ucdavis.edu/dining/nutrition/halal-and-kosher-dining-options/); students should confirm preparation with dining staff.
 
 ## Install it on your phone
 
@@ -48,6 +61,9 @@ Open http://localhost:3000. Without Redis env vars, votes are kept in memory.
 ```bash
 npm run scrape            # print what the scraper sees for every hall, day and meal
 npm run scrape -- --json  # also write menu.json
+npm test                 # source-label and recipe-specific serving regressions
+npm run lint
+npm run build
 ```
 
 The scraped data is also served as JSON at `/api/menu`.

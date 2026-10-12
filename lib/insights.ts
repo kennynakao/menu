@@ -1,10 +1,12 @@
 import { matchesFilters, type Filters } from "./filters";
 import { dishCount, isOpen, mealWindow, score } from "./menu-view";
 import { formatDay, formatTime, parseHours } from "./time";
-import type { Dish, Hall, MenuData, VoteTally } from "./types";
+import type { DietTag, Dish, Hall, MenuData, VoteTally } from "./types";
 
 /** One time and place a dish is served this week. */
 export type Serving = {
+  /** The recipe at this time and place; name-based vote keys can span different recipes. */
+  dishIndex: number;
   hall: string;
   hallName: string;
   date: string;
@@ -31,8 +33,8 @@ export function indexServings(menu: MenuData): Map<string, Serving[]> {
           for (const i of zone.dishes) {
             const key = menu.dishes[i].key;
             const list = index.get(key) ?? [];
-            if (!list.some((s) => s.hall === hall.id && s.date === day.date && s.meal === meal.name)) {
-              list.push({ hall: hall.id, hallName: hall.name, date: day.date, meal: meal.name, zone: zone.color, end });
+            if (!list.some((s) => s.hall === hall.id && s.date === day.date && s.meal === meal.name && s.zone === zone.color && s.dishIndex === i)) {
+              list.push({ dishIndex: i, hall: hall.id, hallName: hall.name, date: day.date, meal: meal.name, zone: zone.color, end });
             }
             index.set(key, list);
           }
@@ -71,29 +73,17 @@ export function leaderboard(
   filters: Filters,
   { best = true, today, minutes, limit = 5 }: { best?: boolean; today: string; minutes: number; limit?: number },
 ): RankedDish[] {
-  const seen = new Set<string>();
   const rows: RankedDish[] = [];
-  for (const day of hall.days) {
-    for (const meal of day.meals) {
-      for (const zone of meal.zones) {
-        for (const i of zone.dishes) {
-          const dish = menu.dishes[i];
-          if (seen.has(dish.key)) continue;
-          seen.add(dish.key);
-          const tally = tallies[dish.key];
-          const s = score(tally);
-          if (!tally || (best ? s <= 0 : s >= 0) || !matchesFilters(dish, filters)) continue;
-          const atHall = (servings.get(dish.key) ?? []).filter((x) => x.hall === hall.id);
-          rows.push({
-            dish,
-            tally,
-            score: s,
-            next: atHall.find((x) => isUpcoming(x, today, minutes)),
-            last: atHall.at(-1),
-          });
-        }
-      }
-    }
+  for (const [key, list] of servings) {
+    const tally = tallies[key];
+    const s = score(tally);
+    if (!tally || (best ? s <= 0 : s >= 0)) continue;
+    const atHall = list.filter((x) => x.hall === hall.id && matchesFilters(menu.dishes[x.dishIndex], filters));
+    const next = atHall.find((x) => isUpcoming(x, today, minutes));
+    const last = atHall.at(-1);
+    const representative = next ?? last;
+    if (!representative) continue;
+    rows.push({ dish: menu.dishes[representative.dishIndex], tally, score: s, next, last });
   }
   return rows
     .sort((a, b) => (best ? b.score - a.score : a.score - b.score) || b.tally.up + b.tally.down - (a.tally.up + a.tally.down))
@@ -106,7 +96,13 @@ const normalize = (text: string) =>
     .replace(/[̀-ͯ]/g, "")
     .toLowerCase();
 
-export type SearchHit = { dish: Dish; servings: Serving[] };
+export type SearchHit = {
+  /** The recipe for the next matching serving, or the last one if all have passed. */
+  dish: Dish;
+  servings: Serving[];
+  /** Only labels present on every matched recipe are safe to display for the whole group. */
+  sharedTags: DietTag[];
+};
 
 /** Dishes on any menu this week whose name contains every word of the query. */
 export function searchDishes(
@@ -118,17 +114,21 @@ export function searchDishes(
 ): SearchHit[] {
   const words = normalize(query).split(/\s+/).filter(Boolean);
   if (!words.length) return [];
-  const seen = new Set<string>();
   const hits: (SearchHit & { rank: number })[] = [];
-  for (const dish of menu.dishes) {
-    if (seen.has(dish.key)) continue;
+  for (const allServings of servings.values()) {
+    const list = allServings.filter((s) => {
+      const dish = menu.dishes[s.dishIndex];
+      const name = normalize(dish.name);
+      return words.every((w) => name.includes(w)) && matchesFilters(dish, filters);
+    });
+    const next = list.find((s) => isUpcoming(s, today, minutes));
+    const representative = next ?? list.at(-1);
+    if (!representative) continue;
+    const dish = menu.dishes[representative.dishIndex];
     const name = normalize(dish.name);
-    if (!words.every((w) => name.includes(w)) || !matchesFilters(dish, filters)) continue;
-    seen.add(dish.key);
-    const list = servings.get(dish.key) ?? [];
-    const upcoming = list.some((s) => isUpcoming(s, today, minutes));
+    const sharedTags = dish.tags.filter((tag) => list.every((s) => menu.dishes[s.dishIndex].tags.includes(tag)));
     // Names that start with the query first, then dishes still coming up this week.
-    hits.push({ dish, servings: list, rank: (name.startsWith(words[0]) ? 0 : 2) + (upcoming ? 0 : 1) });
+    hits.push({ dish, servings: list, sharedTags, rank: (name.startsWith(words[0]) ? 0 : 2) + (next ? 0 : 1) });
   }
   return hits.sort((a, b) => a.rank - b.rank || a.dish.name.localeCompare(b.dish.name)).slice(0, limit);
 }
